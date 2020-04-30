@@ -1,0 +1,54 @@
+def nb_model(trn_dat, word_dict, label1, label2):
+    d = dict()
+    trn_cl_1 = trn_dat[trn_dat['target'] == label1]
+    trn_cl_2 = trn_dat[trn_dat['target'] == label2]
+
+    cnt_1 = trn_cl_1.shape[0]
+    cnt_2 = trn_cl_2.shape[0]
+
+    for i in range(word_dict.shape[0]):
+        temp = trn_cl_1[trn_cl_1['wordID']== i+1]
+        cls_1 = (temp.shape[0]  +1)/(cnt_1 +2)
+        temp = trn_cl_2[trn_cl_2['wordID']== i+1]
+        cls_2 = (temp.shape[0]  +1)/(cnt_2 +2)
+        d[i+1] = (cls_1,cls_2)
+    return d
+    
+
+
+def accuracy(test_dat, test_lab, trn_dat, word_dict):
+    test_lab['docID'] =range(len(test_lab))
+    for i in range(len(test_lab)):
+        test_lab['docID'][i] = i+1
+
+    test_targ= pd.merge(test_dat, test_lab, on='docID')
+    d = nb_model(trn_dat, word_dict)
+    d1 = dict()
+    d2 = dict()
+    d3 = dict()
+    d4 = dict()
+    pr_cl1 = 0.5
+    pr_cl2 = 0.5
+    for i,j in test_targ.iterrows():
+        if j['docID'] in d1:
+            d1[j['docID']] = d1[j['docID']]*d[j['wordID']][0]#math.log(d[j['wordID']][0],2)
+            d2[j['docID']] = d2[j['docID']]*d[j['wordID']][1]#math.log(d[j['wordID']][1],2)
+        else:
+            d4[j['docID']] = j['label']
+            d1[j['docID']] = d[j['wordID']][0]*pr_cl1#math.log(d[j['wordID']][0],2)*pr_cl1
+            d2[j['docID']] = d[j['wordID']][1]*pr_cl2#math.log(d[j['wordID']][1],2)*pr_cl2
+
+
+    for key in d1:
+        if d1[key]>d2[key]:
+            d3[key] = 1
+        elif d1[key]<d2[key]:
+            d3[key] = 2
+        else: 
+            d3[key] = 3
+    sum= 0
+    for key in d3:
+        if d3[key]==d4[key]:
+            sum+=1
+    accuracy= sum/len(d3)
+    return accuracy
